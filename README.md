@@ -12,6 +12,7 @@ A modern, secure, and fully open-source habit tracking application that runs ent
 * **👆 Gesture Controls:** Smooth swipe gestures to switch between Dashboard and Calendar views.
 * **🎨 Modern UI:** Clean interface with automatic Dark/Light mode support.
 * **📊 Progress Tracking:** Visual streaks, daily progress bars, and calendar history.
+* **📝 Integrated Todo List:** Keep track of your daily tasks alongside your habits in a dedicated tab.
 * **🎉 Gamification:** Fun animations and motivational quotes to keep you going.
 
 ## 🛠️ Technologies Used

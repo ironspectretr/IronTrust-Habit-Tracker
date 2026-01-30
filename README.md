@@ -35,4 +35,4 @@ You can view the live version here: https://ironspectretr.github.io/IronTrust-Ha
 
 **Built with ❤️ , IronSpectre👻**
 
-Note : The software developer assumes no responsibility for any consequences arising from the use of this software.
+**Note : The software developer assumes no responsibility for any consequences arising from the use of this software.**

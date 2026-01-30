@@ -33,6 +33,6 @@ You can view the live version here:
 
 ---
 
-*Built with ❤️ , IronSpectre👻
+**Built with ❤️ , IronSpectre👻**
 
 Note : The software developer assumes no responsibility for any consequences arising from the use of this software.

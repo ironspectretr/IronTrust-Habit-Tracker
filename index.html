@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="tr" class="light">
+<head>
+<link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>(Iron)Trust</title>
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#ffffff">
+
+    <script src="tailwindcss.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' },
+                        darkbg: '#09090b',
+                        darkcard: '#18181b',
+                    },
+                    animation: {
+                        'bump': 'bump 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                        'breathe': 'breathe 4s ease-in-out infinite',
+                        'fade-in': 'fadeIn 1s ease-out forwards',
+                        'fade-out': 'fadeOut 1s ease-in forwards',
+                        'shake': 'shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both',
+                    },
+                    keyframes: {
+                        bump: {
+                            '0%, 100%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(1.2)' },
+                        },
+                        breathe: {
+                            '0%, 100%': { opacity: '0.4', transform: 'scale(0.98)' },
+                            '50%': { opacity: '0.8', transform: 'scale(1.02)' },
+                        },
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        fadeOut: { '0%': { opacity: '1' }, '100%': { opacity: '0' } },
+                        shake: {
+                            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                            '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                            '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src="confetti.js"></script>
+    <script src="lucide.js"></script>
+
+    <style>
+        html { overscroll-behavior: none; }
+        body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; 
+            overscroll-behavior: none; 
+            -webkit-user-select: none; user-select: none;
+            touch-action: pan-y;
+            font-family: 'Inter', system-ui, sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .view-page, #onboarding-screen, #main-app-container {
+            will-change: opacity, transform;
+            transform: translateZ(0);
+        }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        #main-content {
+            overflow: hidden;
+            position: relative;
+            width: 100vw;
+            height: 100%;
+        }
+        
+        /* GÜNCELLENDİ: 2 Sekme olduğu için genişlik 200vw */
+        #views-container {
+            display: flex;
+            width: 200vw; 
+            height: 100%;
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            will-change: transform; 
+        }
+
+        .view-page {
+            width: 100vw; 
+            flex-shrink: 0;
+            height: 100%;
+            overflow-y: auto; 
+            padding: 1.5rem; 
+            padding-bottom: 7rem; 
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .nav-item { transition: all 0.3s ease; }
+        .nav-active { transform: translateY(-4px); color: #0ea5e9; }
+        .nav-active i { stroke-width: 2.5px; filter: drop-shadow(0 4px 6px rgba(14, 165, 233, 0.3)); }
+        .nav-inactive { opacity: 0.5; transform: scale(0.95); }
+        
+        .animate-pulse-icon { animation: bump 0.3s ease-in-out; }
+
+        .smart-gradient-text {
+            background-size: 300% 300%;
+            animation: gradient-flow 8s ease infinite;
+        }
+        @keyframes gradient-flow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .motivation-base {
+            color: transparent;
+            background-clip: text;
+            -webkit-background-clip: text;
+            background-image: linear-gradient(110deg, rgba(255, 255, 255, 0.6) 45%, #ffffff 50%, rgba(255, 255, 255, 0.6) 55%);
+            background-size: 250% 100%;
+            background-position: 100% 0; 
+        }
+        .shimmer-active { animation: shine-pass 2.5s ease-in-out forwards; }
+        @keyframes shine-pass { 0% { background-position: 100% 0; } 100% { background-position: -150% 0; } }
+
+        .ambient-glow {
+            position: absolute; top: 4px; left: 4px; right: 4px; bottom: 4px;
+            filter: blur(20px); z-index: 0; border-radius: 2rem;
+            animation: breathe 4s ease-in-out infinite;
+        }
+        
+        .task-completed .task-text { text-decoration: line-through; opacity: 0.5; }
+        .task-completed { background-color: rgba(243, 244, 246, 0.5); }
+        .dark .task-completed { background-color: rgba(24, 24, 27, 0.5); }
+
+        /* Card Slider Styles */
+        #status-card-inner {
+            display: flex;
+            width: 200%;
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .card-slide {
+            width: 50%;
+            flex-shrink: 0;
+            padding: 1.5rem;
+        }
+        .card-dots .dot {
+            width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: all 0.3s;
+        }
+        .card-dots .dot.active {
+            width: 16px; border-radius: 4px; background: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-darkbg dark:text-gray-100 transition-colors duration-300 fixed inset-0 w-full h-full overflow-hidden">
+
+    <div id="onboarding-screen" class="hidden fixed inset-0 z-[100] bg-white dark:bg-black flex-col items-center justify-center p-6 text-center">
+        <div id="ob-step-1" class="hidden flex-col items-center justify-center h-full">
+            <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600 animate-pulse">Hoş Geldin.</h1>
+        </div>
+
+        <div id="ob-step-2" class="hidden flex-col w-full max-w-sm h-full justify-center">
+            <div class="mb-8">
+                <div class="w-16 h-16 bg-brand-100 dark:bg-brand-900/30 text-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="settings-2" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-2">Hadi Başlayalım</h2>
+                <p class="text-gray-500 text-sm">Deneyimi senin için özelleştirelim.</p>
+            </div>
+
+            <div class="space-y-4 text-left">
+                <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 ml-1">Tema Tercihin</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="selectThemeMode('system')" id="btn-theme-system" class="theme-mode-btn h-24 rounded-xl border-2 border-transparent bg-gray-100 dark:bg-zinc-800 transition-all flex flex-col items-center justify-center gap-2 outline-none touch-manipulation">
+                        <i data-lucide="smartphone" class="w-6 h-6"></i>
+                        <span class="text-xs font-bold">Sistem</span>
+                    </button>
+                    <button onclick="selectThemeMode('manual')" id="btn-theme-manual" class="theme-mode-btn h-24 rounded-xl border-2 border-transparent bg-gray-100 dark:bg-zinc-800 transition-all flex flex-col items-center justify-center gap-2 outline-none touch-manipulation">
+                        <i data-lucide="user" class="w-6 h-6"></i>
+                        <span class="text-xs font-bold">Kullanıcı</span>
+                    </button>
+                </div>
+                <div id="manual-theme-options" class="hidden overflow-hidden transition-all duration-300">
+                    <div class="grid grid-cols-2 gap-3 pt-2">
+                        <button onclick="applyManualTheme('light')" id="btn-manual-light" class="p-3 rounded-xl border-2 border-gray-200 bg-white text-black flex items-center justify-center gap-2 outline-none touch-manipulation">
+                            <i data-lucide="sun" class="w-4 h-4"></i> <span class="text-xs font-bold">Aydınlık</span>
+                        </button>
+                        <button onclick="applyManualTheme('dark')" id="btn-manual-dark" class="p-3 rounded-xl border-2 border-zinc-700 bg-black text-white flex items-center justify-center gap-2 outline-none touch-manipulation">
+                            <i data-lucide="moon" class="w-4 h-4"></i> <span class="text-xs font-bold">Karanlık</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="finishOnboarding()" class="mt-12 w-full py-4 rounded-2xl bg-brand-600 text-white font-bold shadow-lg shadow-brand-500/30 active:scale-95 transition-transform outline-none touch-manipulation">
+                Kaydet ve Başla
+            </button>
+        </div>
+    </div>
+
+    <div id="main-app-container" class="hidden max-w-md mx-auto h-[100dvh] flex-col relative bg-white dark:bg-black shadow-2xl overflow-hidden">
+        
+        <header class="flex-none p-6 pt-[calc(env(safe-area-inset-top)+2rem)] pb-4 z-10 sticky top-0 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-colors duration-300">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm font-medium" id="current-date-text">Tarih</p>
+                    <h1 class="text-3xl font-bold mt-1 flex items-center gap-2" id="greeting-area"></h1>
+                </div>
+                <button onclick="openSettings()" class="no-swipe p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:scale-105 transition-transform outline-none touch-manipulation">
+                    <i data-lucide="settings" class="w-5 h-5 text-gray-600 dark:text-gray-300"></i>
+                </button>
+            </div>
+        </header>
+
+        <main id="main-content" class="flex-1 relative">
+            <div id="views-container">
+                
+                <div id="view-dashboard" class="view-page hide-scrollbar space-y-6">
+                    
+                    <div class="relative w-full no-swipe-global" id="status-card-container">
+                        <div id="status-card-glow" class="ambient-glow bg-gradient-to-br from-blue-500 to-indigo-600"></div>
+                        <div id="status-card" class="relative z-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl text-white shadow-lg shadow-black/5 overflow-hidden transition-colors duration-1000">
+                            <div class="absolute -top-10 -right-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl z-0"></div>
+                            
+                            <div id="status-card-inner" class="relative z-10">
+                                
+                                <div class="card-slide">
+                                    <h2 class="text-lg font-semibold opacity-90">Günlük Durum</h2>
+                                    <div class="flex items-end gap-2 mt-2">
+                                        <span id="daily-completed-count" class="text-4xl font-bold">0</span>
+                                        <span class="text-xl opacity-70 mb-1">/</span>
+                                        <span id="daily-total-count" class="text-xl opacity-70 mb-1">0</span>
+                                    </div>
+                                    <div class="w-full bg-black/20 h-2 rounded-full mt-4 overflow-hidden">
+                                        <div id="progress-bar" class="h-full bg-white transition-all duration-1000 ease-out" style="width: 0%"></div>
+                                    </div>
+                                    <p id="motivation-text" class="text-sm mt-3 font-bold h-5 motivation-base">Hadi başlayalım!</p>
+                                </div>
+
+                                <div class="card-slide flex flex-col justify-center">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span id="calendar-month-year" class="text-sm font-bold opacity-90">...</span>
+                                        <div class="flex gap-1">
+                                            <button onclick="changeMonth(-1)" class="p-1 bg-white/10 rounded hover:bg-white/20 touch-manipulation"><i data-lucide="chevron-left" class="w-3 h-3"></i></button>
+                                            <button onclick="changeMonth(1)" class="p-1 bg-white/10 rounded hover:bg-white/20 touch-manipulation"><i data-lucide="chevron-right" class="w-3 h-3"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-7 text-center text-[8px] opacity-60 font-bold uppercase mb-1">
+                                        <div>Pt</div><div>Sa</div><div>Ça</div><div>Pe</div><div>Cu</div><div>Ct</div><div>Pa</div>
+                                    </div>
+                                    <div id="calendar-grid" class="grid grid-cols-7 gap-1 place-items-center text-xs"></div>
+                                </div>
+                            </div>
+
+                            <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-1 card-dots pb-1">
+                                <div id="dot-0" class="dot active"></div>
+                                <div id="dot-1" class="dot"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-4 relative z-10">
+                            <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200">Serilerin</h3>
+                            <button onclick="prepareAddModal()" class="no-swipe flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm font-bold bg-brand-50 dark:bg-brand-900/20 px-3 py-1 rounded-full hover:bg-brand-100 transition outline-none touch-manipulation">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Yeni
+                            </button>
+                        </div>
+                        <div id="habit-list" class="space-y-4"></div>
+                        <div id="empty-state" class="hidden py-12 text-center text-gray-400">
+                            <div class="bg-gray-100 dark:bg-zinc-900 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i data-lucide="rocket" class="w-8 h-8 opacity-50"></i>
+                            </div>
+                            <p class="text-sm">Henüz bir hedefin yok.<br>Yeni bir tane ekle ve başla!</p>
+                        </div>
+                    </div>
+                </div>
+
+                 <div id="view-tasks" class="view-page hide-scrollbar space-y-6">
+                    <div class="flex justify-between items-center mb-4 relative z-10">
+                        <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200">Görevler</h3>
+                        <button id="task-header-btn" onclick="prepareAddModal()" class="hidden no-swipe flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm font-bold bg-brand-50 dark:bg-brand-900/20 px-3 py-1 rounded-full hover:bg-brand-100 transition outline-none touch-manipulation">
+                            <i data-lucide="plus" class="w-3 h-3"></i> Ekle
+                        </button>
+                    </div>
+
+                    <div id="task-list" class="space-y-3"></div>
+
+                    <div id="tasks-empty-state" class="flex flex-col items-center justify-center h-[60vh] text-center">
+                        <button onclick="prepareAddModal()" class="w-20 h-20 bg-brand-500 rounded-full shadow-xl shadow-brand-500/30 text-white flex items-center justify-center mb-4 animate-bump active:scale-95 transition-transform outline-none touch-manipulation">
+                            <i data-lucide="plus" class="w-10 h-10"></i>
+                        </button>
+                        <p class="text-gray-400 text-sm font-bold">Bugün ne yapacaksın?</p>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <nav class="fixed bottom-0 max-w-md w-full bg-white/95 dark:bg-black/95 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800 flex justify-around items-center p-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] dark:shadow-none transition-colors duration-300">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="no-swipe nav-item nav-active flex flex-col items-center gap-1 text-brand-600 dark:text-brand-500 w-full touch-manipulation z-50 outline-none">
+                <i data-lucide="layout-grid" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">Seriler</span>
+            </button>
+            <button onclick="switchTab('tasks')" id="nav-tasks" class="no-swipe nav-item nav-inactive flex flex-col items-center gap-1 text-gray-400 w-full touch-manipulation z-50 outline-none">
+                <i data-lucide="check-square" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">Görevler</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-end justify-center z-[60]">
+        <div class="bg-white dark:bg-darkcard w-full max-w-md p-6 rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]" id="settings-content">
+            <h2 class="text-xl font-bold mb-6 mt-2">Ayarlar</h2>
+            <div class="space-y-4 mb-8">
+                <label class="block text-sm font-bold text-gray-500 dark:text-gray-400">Görünüm</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="settingsSelectTheme('system')" id="set-theme-system" class="p-3 rounded-xl border-2 border-transparent bg-gray-100 dark:bg-zinc-800 text-sm font-bold outline-none touch-manipulation">Sistem</button>
+                    <button onclick="settingsSelectTheme('manual')" id="set-theme-manual" class="p-3 rounded-xl border-2 border-transparent bg-gray-100 dark:bg-zinc-800 text-sm font-bold outline-none touch-manipulation">Manuel</button>
+                </div>
+                <div id="set-manual-options" class="hidden grid-cols-2 gap-3 mt-2">
+                    <button onclick="applyTheme('light', 'manual')" id="set-manual-light" class="p-2 rounded-lg border-2 border-gray-200 bg-white text-black text-xs font-bold flex items-center justify-center gap-2 outline-none touch-manipulation"><i data-lucide="sun" class="w-3 h-3"></i> Aydınlık</button>
+                    <button onclick="applyTheme('dark', 'manual')" id="set-manual-dark" class="p-2 rounded-lg border-2 border-zinc-700 bg-black text-white text-xs font-bold flex items-center justify-center gap-2 outline-none touch-manipulation"><i data-lucide="moon" class="w-3 h-3"></i> Karanlık</button>
+                </div>
+            </div>
+            <button onclick="closeSettings()" class="w-full py-3 rounded-xl font-bold bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 outline-none touch-manipulation">Kapat</button>
+        </div>
+    </div>
+
+    <div id="add-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-6">
+        <div class="bg-white dark:bg-darkcard w-full max-w-sm p-6 rounded-3xl shadow-2xl scale-95 opacity-0 transition-all duration-300" id="add-modal-content">
+            <h2 class="text-xl font-bold mb-4" id="add-modal-title">Yeni Hedef</h2>
+            <input type="text" id="habit-name" placeholder="Başlık girin" class="w-full p-4 mb-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 border-2 border-transparent focus:border-brand-500 outline-none transition-all">
+            <div id="type-selector-container" class="grid grid-cols-3 gap-2 mb-6">
+                <button onclick="selectType(this, 'boolean')" class="type-btn no-swipe active p-3 rounded-xl border-2 border-brand-500 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 text-xs font-bold text-center outline-none touch-manipulation" data-type="boolean">Tikleme</button>
+                <button onclick="selectType(this, 'number')" class="type-btn no-swipe p-3 rounded-xl border-2 border-transparent bg-gray-100 dark:bg-zinc-800 text-gray-500 text-xs font-bold text-center outline-none touch-manipulation" data-type="number">Sayı</button>
+                <button onclick="selectType(this, 'text')" class="type-btn no-swipe p-3 rounded-xl border-2 border-transparent bg-gray-100 dark:bg-zinc-800 text-gray-500 text-xs font-bold text-center outline-none touch-manipulation" data-type="text">Not</button>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeModal('add-modal')" class="no-swipe flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 transition outline-none touch-manipulation">İptal</button>
+                <button id="add-modal-btn" onclick="addItem()" class="no-swipe flex-1 py-3 rounded-xl font-bold bg-black dark:bg-white text-white dark:text-black shadow-lg outline-none touch-manipulation">Oluştur</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="log-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-6">
+        <div class="bg-white dark:bg-darkcard w-full max-w-sm p-6 rounded-3xl shadow-2xl scale-95 opacity-0 transition-all duration-300" id="log-modal-content">
+            <div class="text-center mb-6">
+                <h2 class="text-xl font-bold" id="log-habit-name">...</h2>
+                <p class="text-sm text-gray-400">Bugün neler yaptın?</p>
+            </div>
+            <div id="log-input-area" class="mb-6"></div>
+            <div class="flex gap-3">
+                <button onclick="closeModal('log-modal')" class="no-swipe flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 outline-none touch-manipulation">Vazgeç</button>
+                <button onclick="saveLog()" class="no-swipe flex-1 py-3 rounded-xl font-bold bg-brand-600 text-white shadow-lg shadow-brand-500/30 outline-none touch-manipulation">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-6">
+        <div class="bg-white dark:bg-darkcard w-full max-w-sm p-6 rounded-3xl shadow-2xl scale-95 opacity-0 transition-all duration-300" id="view-modal-content">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h2 class="text-xl font-bold" id="view-modal-title">Detay</h2>
+                    <p class="text-xs text-gray-400 font-mono mt-1" id="view-modal-date">...</p>
+                </div>
+                <div id="view-modal-icon" class="p-2 bg-gray-100 dark:bg-zinc-800 rounded-full"></div>
+            </div>
+            <div class="bg-gray-50 dark:bg-zinc-900 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800 mb-6 max-h-40 overflow-y-auto hide-scrollbar">
+                <p id="view-modal-content-text" class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed text-sm">...</p>
+            </div>
+            <button onclick="closeModal('view-modal')" class="no-swipe w-full py-3 rounded-xl font-bold bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700 transition outline-none touch-manipulation">Kapat</button>
+        </div>
+    </div>
+
+    <div id="delete-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-6">
+        <div class="bg-white dark:bg-darkcard w-full max-w-sm p-6 rounded-3xl shadow-2xl scale-95 opacity-0 transition-all duration-300 border-2 border-red-100 dark:border-red-900/30" id="delete-modal-content">
+            <div class="flex flex-col items-center text-center mb-6">
+                <div class="w-16 h-16 bg-red-100 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="trash-2" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-xl font-bold mb-2">Sil?</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400">"<span id="delete-habit-name" class="font-bold text-gray-800 dark:text-gray-200">...</span>" öğesini kalıcı olarak silmek üzeresin.</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeModal('delete-modal')" class="no-swipe flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 transition outline-none touch-manipulation">Vazgeç</button>
+                <button onclick="confirmDelete()" class="no-swipe flex-1 py-3 rounded-xl font-bold bg-red-500 text-white shadow-lg shadow-red-500/30 hover:bg-red-600 transition outline-none touch-manipulation">Evet, Sil</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. SETTINGS & THEME ---
+        async function setSystemTheme(isDark) {
+            const color = isDark ? '#09090b' : '#ffffff'; 
+            const style = isDark ? 'DARK' : 'LIGHT'; 
+            const meta = document.querySelector('meta[name="theme-color"]');
+            if(meta) meta.setAttribute('content', color);
+            if (typeof Capacitor !== 'undefined') {
+                try {
+                    const { StatusBar, NavigationBar } = Capacitor.Plugins;
+                    if(StatusBar) { await StatusBar.setBackgroundColor({ color: color }); await StatusBar.setStyle({ style: style }); }
+                    if(NavigationBar) { await NavigationBar.setColor({ color: color, darkButtons: !isDark }); }
+                } catch (e) {}
+            }
+        }
+
+        async function triggerHaptic(type) {
+            if (typeof Capacitor === 'undefined') return;
+            const { Haptics } = Capacitor.Plugins;
+            try {
+                if (type === 'light') await Haptics.impact({ style: 'LIGHT' });
+                else if (type === 'medium') await Haptics.impact({ style: 'MEDIUM' });
+                else if (type === 'success') await Haptics.notification({ type: 'SUCCESS' });
+                else if (type === 'celebration') {
+                    await Haptics.vibrate({ duration: 500 });
+                    await new Promise(r => setTimeout(r, 600));
+                    for (let i = 0; i < 4; i++) { await Haptics.vibrate({ duration: 80 }); await new Promise(r => setTimeout(r, 250)); }
+                }
+            } catch (e) {}
+        }
+
+        function updateSelectionVisuals(mode, theme) {
+            lucide.createIcons();
+            const sysBtns = [document.getElementById('btn-theme-system'), document.getElementById('set-theme-system')];
+            const manBtns = [document.getElementById('btn-theme-manual'), document.getElementById('set-theme-manual')];
+            const manOpts = [document.getElementById('manual-theme-options'), document.getElementById('set-manual-options')];
+            
+            if (mode === 'system') {
+                sysBtns.forEach(b => { if(b) { b.classList.remove('border-transparent'); b.classList.add('border-brand-500', 'bg-brand-50', 'dark:bg-brand-900/20', 'text-brand-600', 'dark:text-brand-400'); } });
+                manBtns.forEach(b => { if(b) { b.classList.add('border-transparent'); b.classList.remove('border-brand-500', 'bg-brand-50', 'dark:bg-brand-900/20', 'text-brand-600', 'dark:text-brand-400'); } });
+                manOpts.forEach(o => { if(o) { if(o.id.includes('set')) o.classList.remove('grid'), o.classList.add('hidden'); else o.classList.add('hidden'); } });
+            } else {
+                manBtns.forEach(b => { if(b) { b.classList.remove('border-transparent'); b.classList.add('border-brand-500', 'bg-brand-50', 'dark:bg-brand-900/20', 'text-brand-600', 'dark:text-brand-400'); } });
+                sysBtns.forEach(b => { if(b) { b.classList.add('border-transparent'); b.classList.remove('border-brand-500', 'bg-brand-50', 'dark:bg-brand-900/20', 'text-brand-600', 'dark:text-brand-400'); } });
+                manOpts.forEach(o => { if(o) { o.classList.remove('hidden'); if(o.id.includes('set')) o.classList.add('grid'); } });
+            }
+
+            const lightBtns = [document.getElementById('btn-manual-light'), document.getElementById('set-manual-light')];
+            const darkBtns = [document.getElementById('btn-manual-dark'), document.getElementById('set-manual-dark')];
+            if (theme === 'light') {
+                lightBtns.forEach(b => { if(b) b.classList.add('border-brand-500'); b.classList.remove('border-gray-200'); });
+                darkBtns.forEach(b => { if(b) b.classList.remove('border-brand-500'); b.classList.add('border-zinc-700'); });
+            } else {
+                darkBtns.forEach(b => { if(b) b.classList.add('border-brand-500'); b.classList.remove('border-zinc-700'); });
+                lightBtns.forEach(b => { if(b) b.classList.remove('border-brand-500'); b.classList.add('border-gray-200'); });
+            }
+        }
+
+        function applyTheme(theme, mode) {
+            const html = document.querySelector('html');
+            const isDark = theme === 'dark';
+            if (isDark) html.classList.add('dark'); else html.classList.remove('dark');
+            setSystemTheme(isDark);
+            localStorage.setItem('themePreference', mode === 'system' ? 'system' : theme);
+            updateSelectionVisuals(mode, theme);
+        }
+
+        function checkAndApplyTheme() {
+            const pref = localStorage.getItem('themePreference') || 'system';
+            if (pref === 'system') {
+                const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                applyTheme(systemIsDark ? 'dark' : 'light', 'system');
+            } else { applyTheme(pref, 'manual'); }
+        }
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if (localStorage.getItem('themePreference') === 'system') { applyTheme(e.matches ? 'dark' : 'light', 'system'); }
+        });
+
+        function selectThemeMode(mode) {
+            if(mode === 'system') {
+                const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                applyTheme(systemIsDark ? 'dark' : 'light', 'system');
+            } else {
+                const currentIsDark = document.querySelector('html').classList.contains('dark');
+                applyTheme(currentIsDark ? 'dark' : 'light', 'manual');
+            }
+        }
+        function settingsSelectTheme(mode) { selectThemeMode(mode); }
+        function applyManualTheme(theme) { applyTheme(theme, 'manual'); }
+
+        // --- 2. ONBOARDING & INIT ---
+        function checkOnboarding() {
+            const mainApp = document.getElementById('main-app-container');
+            if (!localStorage.getItem('setupComplete')) {
+                const screen = document.getElementById('onboarding-screen');
+                const step1 = document.getElementById('ob-step-1');
+                const step2 = document.getElementById('ob-step-2');
+                screen.classList.remove('hidden'); screen.classList.add('flex');
+                step1.classList.remove('hidden'); step1.classList.add('flex', 'animate-fade-in'); 
+                setTimeout(() => {
+                    step1.classList.remove('animate-fade-in'); step1.classList.add('animate-fade-out'); 
+                    setTimeout(() => {
+                        step1.classList.add('hidden');
+                        step2.classList.remove('hidden'); step2.classList.add('flex', 'animate-fade-in'); 
+                        selectThemeMode('system'); 
+                    }, 1000);
+                }, 2000); 
+            } else { checkAndApplyTheme(); mainApp.classList.remove('hidden'); mainApp.classList.add('flex'); }
+        }
+
+        function finishOnboarding() {
+            localStorage.setItem('setupComplete', 'true');
+            const screen = document.getElementById('onboarding-screen');
+            const mainApp = document.getElementById('main-app-container');
+            mainApp.classList.remove('hidden'); mainApp.classList.add('flex');
+            mainApp.style.opacity = '0'; 
+            requestAnimationFrame(() => {
+                confetti({ particleCount: 80, spread: 100, origin: { y: 0.6 } }); 
+                screen.classList.add('animate-fade-out');
+                mainApp.style.opacity = ''; mainApp.classList.add('animate-fade-in');
+                setTimeout(() => { screen.classList.add('hidden'); screen.classList.remove('flex'); }, 1000);
+            });
+        }
+
+        function openSettings() {
+            const modal = document.getElementById('settings-modal');
+            const content = document.getElementById('settings-content');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            const pref = localStorage.getItem('themePreference') || 'system';
+            const html = document.querySelector('html');
+            const currentIsDark = html.classList.contains('dark');
+            updateSelectionVisuals(pref === 'system' ? 'system' : 'manual', currentIsDark ? 'dark' : 'light');
+            requestAnimationFrame(() => { content.classList.remove('translate-y-full'); content.classList.add('translate-y-0'); });
+        }
+
+        function closeSettings() {
+            const modal = document.getElementById('settings-modal');
+            const content = document.getElementById('settings-content');
+            content.classList.remove('translate-y-0'); content.classList.add('translate-y-full');
+            setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 500); 
+        }
+
+        // --- 3. DATA & STATE ---
+        let habits = [];
+        let tasks = [];
+        let selectedType = 'boolean';
+        let currentHabitId = null;
+        let deleteTargetId = null; 
+        let deleteType = null;
+        let editingHabitId = null;
+        let activeTab = 'dashboard';
+        let calendarDate = new Date();
+        let lastRenderedDate = "";
+        
+        // Card Slider State
+        let cardSlideIndex = 0; // 0: status, 1: calendar
+
+        // --- 4. NAVIGATION & GESTURES ---
+        const viewsContainer = document.getElementById('views-container');
+        const mainContent = document.getElementById('main-content');
+        
+        // Global Navigation Swipe
+        let globalTouchStartX = 0;
+        let globalTouchStartY = 0;
+        let isGlobalDragging = false;
+        let currentTranslate = 0;
+
+        mainContent.addEventListener('touchstart', e => {
+            if (e.target.closest('.habit-touch-area') || e.target.closest('.no-swipe') || e.target.closest('.no-swipe-global')) return; 
+            globalTouchStartX = e.touches[0].clientX;
+            globalTouchStartY = e.touches[0].clientY;
+            isGlobalDragging = true;
+            viewsContainer.style.transition = 'none';
+            if (activeTab === 'dashboard') currentTranslate = 0;
+            else currentTranslate = -50; // Only 2 tabs now
+        }, {passive: true});
+
+        mainContent.addEventListener('touchmove', e => {
+            if (!isGlobalDragging) return;
+            const touchX = e.touches[0].clientX;
+            const touchY = e.touches[0].clientY;
+            const diffX = touchX - globalTouchStartX;
+            const diffY = touchY - globalTouchStartY;
+            if (Math.abs(diffY) > Math.abs(diffX)) {
+                isGlobalDragging = false;
+                viewsContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+                viewsContainer.style.transform = `translateX(${currentTranslate}%)`;
+                return;
+            }
+            const screenWidth = window.innerWidth;
+            const percentageDelta = (diffX / screenWidth) * 50; 
+            let newTranslate = currentTranslate + percentageDelta;
+            if (newTranslate > 0) newTranslate = newTranslate / 4; 
+            if (newTranslate < -50) newTranslate = -50 + (newTranslate + 50) / 4; 
+            viewsContainer.style.transform = `translateX(${newTranslate}%)`;
+        }, {passive: false});
+
+        mainContent.addEventListener('touchend', e => {
+            if (!isGlobalDragging) return;
+            isGlobalDragging = false;
+            const touchEndX = e.changedTouches[0].clientX;
+            const diffX = touchEndX - globalTouchStartX;
+            const threshold = window.innerWidth * 0.25; 
+            viewsContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+            
+            if (activeTab === 'dashboard') {
+                if (diffX < -threshold) switchTab('tasks');
+                else viewsContainer.style.transform = 'translateX(0%)';
+            } else { // tasks
+                if (diffX > threshold) switchTab('dashboard');
+                else viewsContainer.style.transform = 'translateX(-50%)';
+            }
+        });
+
+        // --- NEW: Card Swipe Logic ---
+        const statusCard = document.getElementById('status-card-container');
+        const statusInner = document.getElementById('status-card-inner');
+        let cardStartX = 0;
+        let isCardDragging = false;
+
+        statusCard.addEventListener('touchstart', e => {
+            if(e.target.closest('button')) return; // Dont drag on buttons
+            cardStartX = e.touches[0].clientX;
+            isCardDragging = true;
+            statusInner.style.transition = 'none';
+        }, {passive: true});
+
+        statusCard.addEventListener('touchmove', e => {
+            if(!isCardDragging) return;
+            e.stopPropagation(); // Stop bubbling to global swipe
+            const x = e.touches[0].clientX;
+            const diff = x - cardStartX;
+            const width = statusCard.offsetWidth;
+            const baseTranslate = cardSlideIndex === 0 ? 0 : -width;
+            
+            // Resistance at edges
+            let translate = baseTranslate + diff;
+            if(translate > 0) translate = translate / 3;
+            if(translate < -width) translate = -width + (translate + width) / 3;
+
+            statusInner.style.transform = `translateX(${translate}px)`;
+        }, {passive: false});
+
+        statusCard.addEventListener('touchend', e => {
+            if(!isCardDragging) return;
+            isCardDragging = false;
+            statusInner.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+            const endX = e.changedTouches[0].clientX;
+            const diff = endX - cardStartX;
+            const threshold = 50; // px
+            
+            if (Math.abs(diff) > threshold) {
+                if (diff < 0 && cardSlideIndex === 0) cardSlideIndex = 1;
+                else if (diff > 0 && cardSlideIndex === 1) cardSlideIndex = 0;
+            }
+            updateCardSlide();
+        });
+
+        function updateCardSlide() {
+            const width = statusCard.offsetWidth; // Get current width
+            statusInner.style.transform = `translateX(-${cardSlideIndex * 50}%)`;
+            document.getElementById('dot-0').classList.toggle('active', cardSlideIndex === 0);
+            document.getElementById('dot-1').classList.toggle('active', cardSlideIndex === 1);
+        }
+
+        function attachSwipeLogic(id, type = 'habit') {
+            const content = document.getElementById(type === 'habit' ? `habit-content-${id}` : `task-content-${id}`);
+            const deleteBg = document.getElementById(type === 'habit' ? `delete-bg-${id}` : `task-delete-bg-${id}`);
+            const editBg = document.getElementById(type === 'habit' ? `edit-bg-${id}` : `task-edit-bg-${id}`);
+            if (!content) return;
+            let startX = 0; let startY = 0; let isDraggingItem = false; let rowState = 0; 
+            content.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+                content.style.transition = 'none';
+                const currentTransform = content.style.transform.replace(/[^0-9\-.,]/g, '');
+                const currentX = parseFloat(currentTransform) || 0;
+                if (currentX < -50) rowState = -1; else if (currentX > 50) rowState = 1; else rowState = 0; 
+            }, { passive: true });
+            content.addEventListener('touchmove', (e) => {
+                e.stopPropagation(); 
+                const x = e.touches[0].clientX; const y = e.touches[0].clientY;
+                const diffX = x - startX; const diffY = y - startY;
+                if (!isDraggingItem) { if (Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY) * 2.0) isDraggingItem = true; else return; }
+                let baseOffset = 0; if (rowState === -1) baseOffset = -100; if (rowState === 1) baseOffset = 100;
+                let finalX = baseOffset + diffX;
+                if (rowState === -1) finalX = Math.min(finalX, 0); if (rowState === 1) finalX = Math.max(finalX, 0);
+                if (rowState === 0) { if (finalX < -120) finalX = -120; if (finalX > 120) finalX = 120; }
+                content.style.transform = `translateX(${finalX}px)`;
+                if (finalX < 0) { if(deleteBg) deleteBg.classList.remove('hidden'); if(editBg) editBg.classList.add('hidden'); } 
+                else if (finalX > 0) { if(editBg) editBg.classList.remove('hidden'); if(deleteBg) deleteBg.classList.add('hidden'); } 
+                else { if(deleteBg) deleteBg.classList.add('hidden'); if(editBg) editBg.classList.add('hidden'); }
+            }, { passive: false });
+            content.addEventListener('touchend', (e) => {
+                e.stopPropagation(); content.style.transition = 'transform 0.2s ease-out'; 
+                if (!isDraggingItem) return; isDraggingItem = false;
+                const currentTransform = content.style.transform.replace(/[^0-9\-.,]/g, '');
+                const finalPos = parseFloat(currentTransform) || 0;
+                if (finalPos < -60) { content.style.transform = 'translateX(-100px)'; } 
+                else if (finalPos > 60) { content.style.transform = 'translateX(0px)'; if (type === 'habit') openEditModal(id); else openEditTaskModal(id); } 
+                else { content.style.transform = 'translateX(0px)'; setTimeout(() => { if(deleteBg) deleteBg.classList.add('hidden'); if(editBg) editBg.classList.add('hidden'); }, 200); }
+            });
+        }
+
+        function addItem() { if (activeTab === 'tasks') addTask(); else addHabit(); }
+
+        function addHabit() { 
+            const input = document.getElementById('habit-name');
+            const name = input.value.trim();
+            if(!name) { triggerHaptic('medium'); input.classList.add('border-red-500', 'animate-shake'); setTimeout(() => input.classList.remove('border-red-500', 'animate-shake'), 400); return; }
+            habits.push({ id: Date.now(), name: name, type: selectedType, logs: [] }); 
+            saveData(); closeModal('add-modal'); input.value = '';
+        }
+
+        function addTask() {
+            const input = document.getElementById('habit-name');
+            const name = input.value.trim();
+            if(!name) { triggerHaptic('medium'); input.classList.add('border-red-500', 'animate-shake'); setTimeout(() => input.classList.remove('border-red-500', 'animate-shake'), 400); return; }
+            tasks.push({ id: Date.now(), name: name, completed: false });
+            saveData(); closeModal('add-modal'); input.value = '';
+        }
+
+        function toggleTask(id) {
+            const t = tasks.find(x => x.id === id);
+            if (t) {
+                t.completed = !t.completed; saveData();
+                if (t.completed) { triggerHaptic('success'); if (tasks.every(task => task.completed) && tasks.length > 0) { setTimeout(() => triggerHaptic('celebration'), 500); confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } }); } } else { triggerHaptic('light'); }
+            }
+        }
+
+        function openEditTaskModal(id) {
+            editingHabitId = id; const t = tasks.find(x => x.id === id);
+            document.getElementById('habit-name').value = t.name;
+            document.getElementById('type-selector-container').classList.add('hidden');
+            document.getElementById('add-modal-title').innerText = "Görevi Düzenle";
+            const btn = document.getElementById('add-modal-btn'); btn.innerText = "Güncelle"; btn.onclick = saveEditTask;
+            openModal('add-modal'); triggerHaptic('light');
+        }
+
+        function saveEditTask() {
+            if (!editingHabitId) return; const name = document.getElementById('habit-name').value; if (!name) return;
+            const idx = tasks.findIndex(x => x.id === editingHabitId); if (idx > -1) tasks[idx].name = name;
+            saveData(); closeModal('add-modal'); triggerHaptic('light');
+        }
+
+        function renderTasks() {
+            const list = document.getElementById('task-list'); const empty = document.getElementById('tasks-empty-state'); const headerBtn = document.getElementById('task-header-btn');
+            list.innerHTML = '';
+            if (tasks.length === 0) { empty.classList.remove('hidden'); headerBtn.classList.add('hidden'); } else {
+                empty.classList.add('hidden'); headerBtn.classList.remove('hidden');
+                tasks.forEach(t => {
+                    const isDone = t.completed;
+                    const rowClass = isDone ? 'task-completed' : 'bg-white dark:bg-darkcard';
+                    const iconClass = isDone ? 'text-green-500 bg-green-100 dark:bg-green-900/30' : 'text-gray-400 bg-gray-100 dark:bg-zinc-800';
+                    const icon = isDone ? 'check-square' : 'square';
+                    const html = `<div class="relative w-full rounded-3xl overflow-hidden group select-none touch-pan-y" id="task-row-${t.id}"><button id="task-edit-bg-${t.id}" class="hidden absolute top-[3px] bottom-[3px] left-[3px] w-full bg-gray-500 rounded-3xl flex items-center justify-start pl-8 text-white z-0 outline-none touch-manipulation"><div class="flex flex-col items-center gap-1"><i data-lucide="pencil" class="w-6 h-6"></i><span class="text-xs font-bold">Düzenle</span></div></button><button id="task-delete-bg-${t.id}" class="hidden absolute top-[3px] bottom-[3px] right-[3px] w-full bg-red-500 rounded-3xl flex items-center justify-end pr-8 text-white z-0 cursor-pointer outline-none touch-manipulation" onclick="event.stopPropagation(); askDelete(${t.id}, 'task')"><div class="flex flex-col items-center gap-1"><i data-lucide="trash-2" class="w-6 h-6"></i><span class="text-xs font-bold">Sil</span></div></button><div class="habit-content habit-touch-area relative z-10 w-full border border-gray-100 dark:border-gray-800 rounded-3xl p-5 transition-all duration-200 ease-out shadow-sm ${rowClass}" id="task-content-${t.id}" onclick="toggleTask(${t.id})"><div class="flex items-center gap-4"><div class="p-2 rounded-xl transition-colors ${iconClass}"><i data-lucide="${icon}" class="w-6 h-6"></i></div><div class="flex-1"><h4 class="font-bold text-lg leading-tight dark:text-gray-100 task-text transition-all duration-300">${t.name}</h4></div></div></div></div>`;
+                    list.insertAdjacentHTML('beforeend', html); attachSwipeLogic(t.id, 'task');
+                });
+            }
+            lucide.createIcons();
+        }
+
+        function renderDashboard() {
+            const todayStr = getLocalDateString(); lastRenderedDate = todayStr;
+            const list = document.getElementById('habit-list');
+            let completed = 0; habits.forEach(h => { const l = h.logs.find(x => x.date === todayStr); if(l && (l.value === true || (typeof l.value === 'number' && l.value > 0) || (typeof l.value === 'string' && l.value.length > 0))) completed++; });
+            document.getElementById('daily-completed-count').innerText = completed; document.getElementById('daily-total-count').innerText = habits.length;
+            const pct = habits.length === 0 ? 0 : (completed / habits.length) * 100;
+            document.getElementById('progress-bar').style.width = `${pct}%`;
+            document.getElementById('motivation-text').innerText = getRandomMotivation(pct);
+            list.innerHTML = '';
+            document.getElementById('empty-state').classList.toggle('hidden', habits.length > 0);
+            habits.forEach(h => {
+                const weekPills = generateWeekPills(h);
+                const todayLog = h.logs.find(l => l.date === todayStr);
+                const isDone = todayLog && (todayLog.value === true || (typeof todayLog.value === 'number' && todayLog.value > 0) || (typeof todayLog.value === 'string' && todayLog.value.length > 0));
+                const btnClass = isDone ? 'bg-green-500 text-white border-green-500 shadow-lg shadow-green-500/30' : 'bg-white dark:bg-black text-gray-500 border-gray-200 dark:border-zinc-700';
+                const html = `<div class="relative w-full mb-4 rounded-3xl overflow-hidden group select-none touch-pan-y" id="habit-row-${h.id}"><button id="edit-bg-${h.id}" class="hidden absolute top-[3px] bottom-[3px] left-[3px] w-full bg-gray-500 rounded-3xl flex items-center justify-start pl-8 text-white z-0 outline-none touch-manipulation"><div class="flex flex-col items-center gap-1"><i data-lucide="pencil" class="w-6 h-6"></i><span class="text-xs font-bold">Düzenle</span></div></button><button id="delete-bg-${h.id}" class="hidden absolute top-[3px] bottom-[3px] right-[3px] w-full bg-red-500 rounded-3xl flex items-center justify-end pr-8 text-white z-0 cursor-pointer outline-none touch-manipulation" onclick="event.stopPropagation(); askDelete(${h.id}, 'habit')"><div class="flex flex-col items-center gap-1"><i data-lucide="trash-2" class="w-6 h-6"></i><span class="text-xs font-bold">Sil</span></div></button><div class="habit-content habit-touch-area relative z-10 w-full bg-white dark:bg-darkcard border border-gray-100 dark:border-gray-800 rounded-3xl p-5 transition-transform duration-200 ease-out shadow-sm" id="habit-content-${h.id}"><div class="flex justify-between items-start mb-4"><div class="flex items-center gap-3"><div class="p-2.5 rounded-xl ${isDone ? 'bg-green-100 dark:bg-green-900/30 text-green-600' : 'bg-gray-100 dark:bg-zinc-800 text-gray-400'}"><i data-lucide="${getIcon(h.type)}" class="w-5 h-5"></i></div><div><h4 class="font-bold text-lg leading-tight dark:text-gray-100">${h.name}</h4><span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">${getTypeLabel(h.type)}</span></div></div><button onclick="openLogModal(${h.id})" class="no-swipe h-10 px-4 rounded-xl text-sm font-bold border transition-all active:scale-95 flex items-center gap-2 ${btnClass}">${isDone ? '<i data-lucide="check" class="w-4 h-4"></i>' : 'Giriş'}</button></div><div class="flex justify-between items-center bg-gray-50 dark:bg-black/20 p-2.5 rounded-2xl">${weekPills}</div></div></div>`;
+                list.insertAdjacentHTML('beforeend', html); attachSwipeLogic(h.id, 'habit');
+            });
+            lucide.createIcons();
+            
+            // Also render mini calendar on dashboard update
+            renderCalendar();
+        }
+
+        const phrases = {
+            start: ["Başlamak bitirmenin yarısıdır.", "Bugün senin günün!", "Zinciri başlat.", "Küçük adımlar at.", "Harekete geç!"],
+            progress: ["Harika gidiyorsun!", "Ritmi yakaladın.", "Durmak yok.", "İstikrar güçtür.", "Devam et!"],
+            near: ["Çok az kaldı!", "Bitiş çizgisi göründü.", "Son düzlük!", "Pes etme!", "Zafer yakın."],
+            finish: ["Tebrikler! 🎉", "Bugünü fethettin.", "Zinciri kırmadın!", "Efsanesin.", "Harika iş!"]
+        };
+        function getRandomMotivation(percent) {
+            let pool = percent === 0 ? phrases.start : percent < 50 ? phrases.progress : percent < 100 ? phrases.near : phrases.finish;
+            return pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        function getLocalDateString(dateObj = new Date()) {
+            const year = dateObj.getFullYear(); const month = String(dateObj.getMonth() + 1).padStart(2, '0'); const day = String(dateObj.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function updateGreeting() {
+            const currentDateStr = getLocalDateString();
+            if (lastRenderedDate !== "" && lastRenderedDate !== currentDateStr) { renderDashboard(); renderTasks(); renderCalendar(); }
+            const h = new Date().getHours();
+            let text = ""; let emoji = ""; let gradientClass = ""; 
+            const card = document.getElementById('status-card'); const cardGlow = document.getElementById('status-card-glow');
+            const cardBase = "relative z-10 rounded-3xl text-white shadow-lg shadow-black/5 overflow-hidden transition-colors duration-1000";
+            const glowBase = "ambient-glow"; 
+            if (h >= 5 && h < 12) { text = "Günaydın"; emoji = "☀️"; gradientClass = "from-yellow-400 via-orange-500 to-red-500"; const bgClass = "bg-gradient-to-br from-orange-400 to-red-500"; card.className = `${cardBase} ${bgClass}`; cardGlow.className = `${glowBase} ${bgClass}`; }
+            else if (h >= 12 && h < 18) { text = "İyi Günler"; emoji = "🌤️"; gradientClass = "from-blue-400 via-cyan-500 to-teal-400"; const bgClass = "bg-gradient-to-br from-blue-500 to-cyan-500"; card.className = `${cardBase} ${bgClass}`; cardGlow.className = `${glowBase} ${bgClass}`; }
+            else if (h >= 18 && h < 22) { text = "İyi Akşamlar"; emoji = "🌆"; gradientClass = "from-indigo-500 via-purple-500 to-pink-500"; const bgClass = "bg-gradient-to-br from-indigo-600 to-purple-600"; card.className = `${cardBase} ${bgClass}`; cardGlow.className = `${glowBase} ${bgClass}`; } 
+            else { text = "İyi Geceler"; emoji = "🌙"; gradientClass = "from-slate-300 via-indigo-400 to-purple-600"; const bgClass = "bg-gradient-to-br from-slate-800 to-indigo-900"; card.className = `${cardBase} ${bgClass}`; cardGlow.className = `${glowBase} ${bgClass}`; }
+            document.getElementById('greeting-area').innerHTML = `<span class="bg-clip-text text-transparent bg-gradient-to-r ${gradientClass} smart-gradient-text">${text}</span><span class="text-3xl ml-1 filter drop-shadow-sm">${emoji}</span>`;
+            document.getElementById('current-date-text').innerText = new Date().toLocaleDateString('tr-TR', { weekday: 'long', month: 'long', day: 'numeric' });
+        }
+
+        function scheduleRandomShimmer() {
+            setTimeout(() => { const textEl = document.getElementById('motivation-text'); if (textEl) { textEl.classList.add('shimmer-active'); setTimeout(() => { textEl.classList.remove('shimmer-active'); scheduleRandomShimmer(); }, 2500); } }, Math.random() * 5000 + 3000);
+        }
+
+        function loadData() { 
+            const stored = localStorage.getItem('proHabitsV20'); if (stored) habits = JSON.parse(stored); 
+            const storedTasks = localStorage.getItem('proTasksV1'); if (storedTasks) tasks = JSON.parse(storedTasks);
+            renderDashboard(); renderTasks();
+        }
+        function saveData() { 
+            localStorage.setItem('proHabitsV20', JSON.stringify(habits)); 
+            localStorage.setItem('proTasksV1', JSON.stringify(tasks));
+            renderDashboard(); renderTasks();
+        }
+
+        function generateWeekPills(habit) {
+            let html = '';
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i); const dateStr = getLocalDateString(d);
+                const dayName = d.toLocaleDateString('tr-TR', { weekday: 'short' }).slice(0, 1);
+                const log = habit.logs.find(l => l.date === dateStr); const isToday = i === 0;
+                let isDone = false; let pillContent = ''; 
+                if (log) {
+                    if (habit.type === 'boolean' && log.value === true) { isDone = true; pillContent = '<i data-lucide="check" class="w-3 h-3"></i>'; } 
+                    else if (habit.type === 'number' && Number(log.value) > 0) { isDone = true; pillContent = `<span class="text-[9px] font-bold leading-none">${log.value}</span>`; } 
+                    else if (habit.type === 'text' && String(log.value).length > 0) { isDone = true; pillContent = '<i data-lucide="sticky-note" class="w-3 h-3"></i>'; }
+                }
+                let pillClass = isDone ? "bg-brand-500 text-white shadow-brand-500/20" : "bg-gray-200 dark:bg-zinc-800 text-gray-400";
+                let borderClass = isToday ? "border-2 border-brand-500 dark:border-brand-400" : "border-2 border-transparent";
+                const clickAction = isDone ? `onclick="event.stopPropagation(); showPillDetail('${habit.id}', '${dateStr}', '${log.value}', '${habit.type}')"` : `onclick="event.stopPropagation()"`;
+                html += `<div class="flex flex-col items-center gap-1 flex-1 cursor-pointer" ${clickAction}><span class="text-[9px] font-bold opacity-50">${dayName}</span><div class="w-full aspect-square max-w-[30px] rounded-lg flex items-center justify-center transition-all overflow-hidden ${pillClass} ${borderClass}">${pillContent}</div></div>`;
+            }
+            return html;
+        }
+
+        function showPillDetail(id, date, value, type) {
+            const h = habits.find(x => x.id == id); const formattedDate = new Date(date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+            document.getElementById('view-modal-title').innerText = h.name; document.getElementById('view-modal-date').innerText = formattedDate;
+            const iconBox = document.getElementById('view-modal-icon'); const contentBox = document.getElementById('view-modal-content-text');
+            if (type === 'text') { iconBox.innerHTML = '<i data-lucide="sticky-note" class="text-brand-600 w-5 h-5"></i>'; contentBox.innerText = value; } 
+            else if (type === 'number') { iconBox.innerHTML = '<i data-lucide="hash" class="text-brand-600 w-5 h-5"></i>'; contentBox.innerText = `Kayıt: ${value}`; } 
+            else { iconBox.innerHTML = '<i data-lucide="check-circle-2" class="text-green-600 w-5 h-5"></i>'; contentBox.innerText = "Görev tamamlandı!"; }
+            lucide.createIcons(); openModal('view-modal');
+        }
+
+        function getIcon(type) { if (type === 'boolean') return 'check-circle-2'; if (type === 'number') return 'hash'; return 'align-left'; }
+        function getTypeLabel(type) { if (type === 'boolean') return 'TİKLEME'; if (type === 'number') return 'SAYI'; return 'NOT'; }
+        
+        function selectType(btn, type) { 
+            document.querySelectorAll('.type-btn').forEach(b => { b.className = "type-btn no-swipe p-3 rounded-xl border-2 border-transparent bg-gray-100 dark:bg-zinc-800 text-gray-500 text-xs font-bold text-center outline-none touch-manipulation"; }); 
+            if(!btn) { btn = document.querySelector(`.type-btn[data-type="${type}"]`); }
+            if(btn) { btn.className = "type-btn no-swipe active p-3 rounded-xl border-2 border-brand-500 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 text-xs font-bold text-center outline-none touch-manipulation"; }
+            selectedType = type; 
+        }
+
+        function prepareAddModal() {
+            editingHabitId = null; document.getElementById('habit-name').value = '';
+            if (activeTab === 'tasks') { document.getElementById('add-modal-title').innerText = "Yeni Görev"; document.getElementById('type-selector-container').classList.add('hidden'); } 
+            else { document.getElementById('add-modal-title').innerText = "Yeni Hedef"; document.getElementById('type-selector-container').classList.remove('hidden'); selectType(null, 'boolean'); }
+            const btn = document.getElementById('add-modal-btn'); btn.innerText = "Oluştur";
+            openModal('add-modal');
+        }
+
+        function openEditModal(id) {
+            editingHabitId = id; const h = habits.find(x => x.id === id);
+            document.getElementById('habit-name').value = h.name; document.getElementById('type-selector-container').classList.remove('hidden'); selectType(null, h.type);
+            document.getElementById('add-modal-title').innerText = "Seriyi Düzenle";
+            const btn = document.getElementById('add-modal-btn'); btn.innerText = "Güncelle"; btn.onclick = saveEdit;
+            openModal('add-modal'); triggerHaptic('light'); 
+        }
+
+        function saveEdit() {
+            if (!editingHabitId) return; const name = document.getElementById('habit-name').value; if (!name) return;
+            const idx = habits.findIndex(x => x.id === editingHabitId);
+            if (idx > -1) { if (habits[idx].type !== selectedType) { habits[idx].type = selectedType; habits[idx].logs = []; } habits[idx].name = name; }
+            saveData(); closeModal('add-modal'); triggerHaptic('light'); 
+        }
+
+        function askDelete(id, type = 'habit') { 
+            deleteTargetId = id; deleteType = type; let name = "";
+            if (type === 'habit') { const h = habits.find(x => x.id === id); name = h.name; } else { const t = tasks.find(x => x.id === id); name = t.name; }
+            document.getElementById('delete-habit-name').innerText = name; openModal('delete-modal'); 
+        }
+        
+        function confirmDelete() { 
+            if (deleteTargetId) { 
+                if (deleteType === 'habit') { habits = habits.filter(h => h.id !== deleteTargetId); } else { tasks = tasks.filter(t => t.id !== deleteTargetId); }
+                saveData(); deleteTargetId = null; deleteType = null; closeModal('delete-modal'); triggerHaptic('medium'); 
+            } 
+        }
+
+        function openLogModal(id) {
+            currentHabitId = id; const h = habits.find(x => x.id === id); document.getElementById('log-habit-name').innerText = h.name; 
+            const container = document.getElementById('log-input-area'); container.innerHTML = '';
+            if (h.type === 'boolean') { container.innerHTML = `<div class="flex gap-2"><button onclick="saveLogVal(true)" class="no-swipe flex-1 p-6 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-2xl border-2 border-green-500 hover:scale-105 transition"><i data-lucide="check" class="mx-auto w-8 h-8"></i><div class="mt-2 font-bold">Yaptım</div></button><button onclick="saveLogVal(false)" class="no-swipe flex-1 p-6 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-2xl border-2 border-transparent hover:border-red-500 transition"><i data-lucide="x" class="mx-auto w-8 h-8"></i><div class="mt-2 font-bold">Yapmadım</div></button></div>`; } 
+            else if (h.type === 'number') { container.innerHTML = `<input type="number" id="val-log" class="w-full text-center text-4xl font-bold p-4 rounded-2xl bg-gray-100 dark:bg-zinc-800 outline-none focus:ring-2 focus:ring-brand-500" placeholder="0" autofocus>`; } 
+            else { container.innerHTML = `<textarea id="val-log" rows="4" class="w-full p-4 rounded-2xl bg-gray-100 dark:bg-zinc-800 outline-none focus:ring-2 focus:ring-brand-500 resize-none" placeholder="Notun..." autofocus></textarea>`; }
+            lucide.createIcons(); openModal('log-modal');
+        }
+
+        function saveLogVal(val) { processLog(val); }
+        function saveLog() { const valInput = document.getElementById('val-log'); if(!valInput) return; let val = valInput.value; const habit = habits.find(h => h.id === currentHabitId); if(habit.type === 'number') val = Number(val); processLog(val); }
+        
+        function processLog(val) { 
+            const habit = habits.find(h => h.id === currentHabitId); const today = getLocalDateString(); 
+            const idx = habit.logs.findIndex(l => l.date === today); let hasChanged = true;
+            if(idx > -1) { if (habit.logs[idx].value === val) hasChanged = false; habit.logs[idx].value = val; } else { habit.logs.push({ date: today, value: val }); } 
+            saveData(); closeModal('log-modal'); 
+            const isPositive = (val === true || (typeof val === 'number' && val > 0) || (typeof val === 'string' && val.length > 0));
+            if(isPositive && hasChanged) { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); triggerHaptic('success'); }
+            const todayStr = getLocalDateString(); let completedCount = 0;
+            habits.forEach(h => { const l = h.logs.find(x => x.date === todayStr); if(l && (l.value === true || (typeof l.value === 'number' && l.value > 0) || (typeof l.value === 'string' && l.value.length > 0))) completedCount++; });
+            if (habits.length > 0 && completedCount === habits.length) { setTimeout(() => { triggerHaptic('celebration'); }, 600); }
+        }
+
+        function openModal(id) { const el = document.getElementById(id); el.classList.remove('hidden'); el.classList.add('flex'); setTimeout(() => { const c = el.querySelector('div[id$="-content"]'); c.classList.remove('scale-95', 'opacity-0'); c.classList.add('scale-100', 'opacity-100'); }, 10); }
+        function closeModal(id) { const el = document.getElementById(id); const c = el.querySelector('div[id$="-content"]'); c.classList.remove('scale-100', 'opacity-100'); c.classList.add('scale-95', 'opacity-0'); setTimeout(() => { el.classList.add('hidden'); el.classList.remove('flex'); }, 300); }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            document.getElementById('calendar-month-year').innerText = calendarDate.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }).toUpperCase();
+            const year = calendarDate.getFullYear(); const month = calendarDate.getMonth();
+            const firstDay = new Date(year, month, 1).getDay(); const offset = firstDay === 0 ? 6 : firstDay - 1; 
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            grid.innerHTML = '';
+            for(let i=0; i<offset; i++) grid.innerHTML += `<div></div>`;
+            for(let day=1; day<=daysInMonth; day++) {
+                const currentDayStr = `${year}-${String(month+1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                let completedCount = 0;
+                habits.forEach(h => { const l = h.logs.find(x => x.date === currentDayStr); if(l && (l.value === true || (typeof l.value === 'number' && l.value > 0) || (typeof l.value === 'string' && l.value.length > 0))) completedCount++; });
+                let bg = "bg-white/10 text-white";
+                if(habits.length > 0 && completedCount > 0) { const r = completedCount / habits.length; bg = r === 1 ? "bg-white text-brand-600" : r >= 0.5 ? "bg-white/60 text-brand-700" : "bg-white/30 text-white"; }
+                const border = currentDayStr === getLocalDateString() ? "border border-yellow-300" : "";
+                grid.innerHTML += `<div class="w-full aspect-square rounded-md ${bg} ${border} flex items-center justify-center text-[10px] font-bold shadow-sm">${day}</div>`;
+            }
+        }
+        function changeMonth(d) { calendarDate.setMonth(calendarDate.getMonth() + d); renderCalendar(); }
+
+        function switchTab(tab) {
+            if (activeTab === tab) { const icon = document.querySelector(`#nav-${tab} i`); icon.classList.remove('animate-pulse-icon'); void icon.offsetWidth; icon.classList.add('animate-pulse-icon'); return; }
+            activeTab = tab;
+            const navD = document.getElementById('nav-dashboard'); const navT = document.getElementById('nav-tasks');
+            [navD, navT].forEach(n => { n.classList.remove('nav-active', 'text-brand-600', 'dark:text-brand-500'); n.classList.add('nav-inactive', 'text-gray-400'); });
+            const selectedNav = tab === 'dashboard' ? navD : navT;
+            selectedNav.classList.add('nav-active', 'text-brand-600', 'dark:text-brand-500'); selectedNav.classList.remove('nav-inactive', 'text-gray-400');
+            if (tab === 'dashboard') { viewsContainer.style.transform = 'translateX(0%)'; renderDashboard(); } 
+            else { viewsContainer.style.transform = 'translateX(-50%)'; renderTasks(); }
+        }
+
+        updateGreeting(); loadData(); setInterval(updateGreeting, 60000); scheduleRandomShimmer(); renderCalendar(); updateCardSlide();
+        document.addEventListener('DOMContentLoaded', () => { checkOnboarding(); });
+
+    </script>
+</body>
+</html>

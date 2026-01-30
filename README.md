@@ -23,7 +23,7 @@ A modern, secure, and fully open-source habit tracking application that runs ent
 
 ## 📦 How to Install (Android)
 
-1.  Download the latest `.apk` from the Releases section (or build it yourself using PWABuilder).
+1.  Download the latest `.apk` from the Releases section (ComingSoon).
 2.  Install it on your Android device.
 3.  Start tracking your habits offline!
 

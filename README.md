@@ -23,13 +23,13 @@ A modern, secure, and fully open-source habit tracking application that runs ent
 
 ## 📦 How to Install (Android)
 
-1.  Download the latest `.apk` from the Releases section (ComingSoon).
+1.  Using Capacitor , build apk at Android Studio. (https://github.com/ionic-team/capacitor)
 2.  Install it on your Android device.
 3.  Start tracking your habits offline!
 
 ## 🌍 Live Demo
 
-You can view the live version here: 
+You can view the live version here: https://ironspectretr.github.io/IronTrust-Habit-Tracker/
 
 ---
 
